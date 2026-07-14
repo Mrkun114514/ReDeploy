@@ -1,0 +1,8 @@
+{
+  "screen.redeploy.title": "你已死亡",
+  "screen.redeploy.subtitle": "重新部署  ·  REDEPLOY",
+  "screen.redeploy.button": "重新部署",
+  "screen.redeploy.hint": "长按【重新部署】以重生",
+  "screen.redeploy.hint.wait": "正在定位重生点…",
+  "screen.redeploy.hint.holding": "正在重新部署…"
+}

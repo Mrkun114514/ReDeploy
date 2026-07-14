@@ -1,0 +1,8 @@
+{
+  "screen.redeploy.title": "YOU DIED",
+  "screen.redeploy.subtitle": "REDEPLOY",
+  "screen.redeploy.button": "REDEPLOY",
+  "screen.redeploy.hint": "Hold [REDEPLOY] to respawn",
+  "screen.redeploy.hint.wait": "Locating respawn point...",
+  "screen.redeploy.hint.holding": "Redeploying..."
+}
