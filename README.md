@@ -44,17 +44,21 @@
 
 ```
 redeploy/
-├── build.gradle / settings.gradle / gradle.properties   # 基于官方 MDK-1.21.8-NeoGradle
+├── build.gradle / settings.gradle / gradle.properties   # 基于官方 MDK-1.21.8-ModDevGradle
 ├── gradlew / gradlew.bat / gradle/wrapper/            # Gradle 9.2.1 wrapper（开箱即用）
 ├── src/main/java/com/mrkun114514/redeploy/
 │   ├── Redeploy.java                       # @Mod 入口
 │   └── client/
 │       ├── ClientEvents.java             # ScreenEvent.Opening 拦截并替换死亡界面
 │       └── RedeployDeathScreen.java     # COD 风格死亡界面（长按部署 + 音效）
+├── src/main/templates/META-INF/neoforge.mods.toml    # 构建时由 generateModMetadata 展开
 └── src/main/resources/
-    ├── META-INF/neoforge.mods.toml
     └── assets/redeploy/lang/{zh_cn,en_us}.json
 ```
+
+> 构建系统：本项目使用 **ModDevGradle**（`net.neoforged.moddev` 2.0.141）。
+> 旧版 NeoGradle（`net.neoforged.gradle.userdev` 7.1.38）在 Maven 仓库中已无法解析，故迁移到官方推荐的 ModDevGradle 等价方案。
+> `neoforge.mods.toml` 现在放在 `src/main/templates/` 下，由 `generateModMetadata` 任务展开变量后输出到 `build/generated/sources/modMetadata/`。
 
 ---
 
