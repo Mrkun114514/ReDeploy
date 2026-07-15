@@ -1,5 +1,6 @@
 package com.mrkun114514.redeploy;
 
+import com.mrkun114514.redeploy.client.ClientEvents;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 
@@ -15,7 +16,9 @@ public class Redeploy {
     public static final String MOD_NAME = "ReDeploy";
 
     public Redeploy(IEventBus modEventBus) {
-        // GUI-only mod: all behaviour lives in the client-side
-        // screen-replacement subscriber (see client.ClientEvents).
+        // GUI-only mod: the death-screen replacement lives in the client-side
+        // screen-opening subscriber (see client.ClientEvents). The mod is declared
+        // side=CLIENT in neoforge.mods.toml, so this constructor only runs on the client.
+        ClientEvents.register();
     }
 }

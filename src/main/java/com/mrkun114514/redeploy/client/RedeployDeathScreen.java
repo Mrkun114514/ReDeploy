@@ -4,12 +4,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.sounds.SimpleSoundInstance;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
+
+import java.util.Optional;
 
 /**
  * A Call of Duty style "YOU DIED / REDEPLOY" death overlay.
@@ -102,11 +104,11 @@ public class RedeployDeathScreen extends Screen {
 
         // --- Title (large, red) ---
         Component title = Component.translatable("screen.redeploy.title");   // 你已死亡
-        gui.pose().pushPose();
-        gui.pose().translate(cx, (int) (this.height * 0.30), 0);
-        gui.pose().scale(3.0f, 3.0f, 1.0f);
+        gui.pose().pushMatrix();
+        gui.pose().translate(cx, (float) (this.height * 0.30));
+        gui.pose().scale(3.0f, 3.0f);
         gui.drawCenteredString(this.font, title, 0, 0, 0xFFD23B2E);
-        gui.pose().popPose();
+        gui.pose().popMatrix();
 
         // --- Subtitle (small, grey) ---
         Component sub = Component.translatable("screen.redeploy.subtitle");  // 重新部署 / REDEPLOY
@@ -170,10 +172,10 @@ public class RedeployDeathScreen extends Screen {
     }
 
     @Override
-    public boolean mouseMoved(double mouseX, double mouseY) {
+    public void mouseMoved(double mouseX, double mouseY) {
         lastMx = mouseX;
         lastMy = mouseY;
-        return super.mouseMoved(mouseX, mouseY);
+        super.mouseMoved(mouseX, mouseY);
     }
 
     /** Consume ESC so the screen cannot be closed without redeploying. */
@@ -216,8 +218,9 @@ public class RedeployDeathScreen extends Screen {
     }
 
     private void playSound(ResourceLocation id, float pitch) {
-        SoundEvent event = BuiltInRegistries.SOUND_EVENT.get(id);
-        if (event == null) return;
+        Optional<net.minecraft.core.Holder.Reference<SoundEvent>> ref = BuiltInRegistries.SOUND_EVENT.get(id);
+        if (ref.isEmpty()) return;
+        SoundEvent event = ref.get().value();
         SoundManager mgr = Minecraft.getInstance().getSoundManager();
         mgr.play(SimpleSoundInstance.forUI(event, pitch));
     }
