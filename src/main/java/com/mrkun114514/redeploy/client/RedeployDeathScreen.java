@@ -2,7 +2,9 @@ package com.mrkun114514.redeploy.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
@@ -17,9 +19,16 @@ import java.util.Optional;
  * A Call of Duty style "YOU DIED / REDEPLOY" death overlay.
  *
  * <p>Vanilla {@code DeathScreen} is replaced by this screen (see {@link ClientEvents}).
- * The player must <b>hold</b> the {@code [REDEPLOY]} button continuously for a few
- * seconds to respawn. A ticking confirmation sound plays while holding, and a
- * distinct confirm sound fires the moment redeploy completes.</p>
+ * In normal mode the player must <b>hold</b> the {@code [REDEPLOY]} button to respawn.
+ * In Hardcore mode the screen offers <b>two</b> choices, each a long-press button:
+ * {@code [DETACH]} (脱离机体 — respawn as a spectator) and {@code [EXTRACT]}
+ * (退出战区 — leave to the title screen), since a Hardcore character cannot be
+ * normally reborn.</p>
+ *
+ * <p>On open, the screen does NOT show the GUI immediately: it flashes a muted
+ * red for a beat, then fades to a dark navy, and only then does the COD
+ * overlay (title / buttons) fade in — matching the "you are gone" beat before
+ * the menu appears.</p>
  *
  * @author Mrkun114514
  */
@@ -28,10 +37,20 @@ public class RedeployDeathScreen extends Screen {
     // ---- tuning -----------------------------------------------------------
     /** Ticks (20/s) the screen waits before you are allowed to hold. ~2s. */
     private static final int READY_DELAY = 40;
-    /** Ticks of continuous holding required to redeploy. ~3s. */
+    /** Ticks of continuous holding required to confirm. ~3s. */
     private static final int HOLD_REQUIRED = 60;
     /** Play a tick sound every N ticks of holding. */
     private static final int TICK_EVERY = 8;
+
+    // Intro animation (wall-clock based, independent of the mod's tick timers).
+    /** ms the solid-red flash lasts before it starts fading to navy. */
+    private static final long INTRO_RED = 1200;
+    /** ms the red->navy fade + GUI fade-in takes. */
+    private static final long INTRO_FADE = 1000;
+
+    // Overlay colours as 0xAARRGGBB. Muted + semi-transparent so it is not blinding.
+    private static final int RED_OVERLAY = 0x99D23B2E;   // soft red flash
+    private static final int NAVY_OVERLAY = 0xDD0A0E2A;  // dark navy resting state
 
     // Vanilla sounds are used so the mod ships with zero binary assets.
     private static final ResourceLocation TICK_SOUND =
@@ -39,26 +58,61 @@ public class RedeployDeathScreen extends Screen {
     private static final ResourceLocation CONFIRM_SOUND =
             ResourceLocation.parse("minecraft:entity.player.levelup");      // success jingle
 
+    // Button ids.
+    private static final int BTN_NONE = 0;
+    private static final int BTN_REDEPLOY = 1;   // normal mode
+    private static final int BTN_SPECTATE = 1;   // hardcore: 脱离机体 (same slot, hardcore-only)
+    private static final int BTN_QUIT = 2;       // hardcore: 退出战区
+
     // ---- state -------------------------------------------------------------
     private int ticksOpen = 0;
-    private boolean holding = false;
+    private int holdBtn = BTN_NONE;   // which button is currently being held
     private int holdTicks = 0;
     private boolean done = false;
+    private final boolean hardcore;
 
     private double lastMx = 0, lastMy = 0;
-    private int btnX, btnY, btnW, btnH;
+    private int btnX, btnY, btnW, btnH;          // primary button (normal) / left (hardcore)
+    private int btn2X, btn2Y, btn2W, btn2H;     // hardcore right button (0-size when unused)
+    private long openedAt;
+    /** Set when ESC is used to open the pause menu, so {@link #removed()} won't
+     *  mistake the open-pause transition for a real close and resolve the player. */
+    private boolean goingToPause = false;
 
     public RedeployDeathScreen() {
+        this(false);
+    }
+
+    public RedeployDeathScreen(boolean hardcore) {
         super(Component.literal("ReDeploy"));
+        this.hardcore = hardcore;
     }
 
     @Override
     protected void init() {
         super.init();
-        this.btnW = Math.min(420, this.width - 80);
         this.btnH = 56;
-        this.btnX = (this.width - this.btnW) / 2;
-        this.btnY = this.height - this.btnH - 90;
+        // Layout is computed from the title so title/subtitle can never overlap
+        // the buttons, even on small screens.
+        int titleY = (int) (this.height * 0.28);
+        int subY = titleY + 64;
+        this.btnY = subY + 80;          // buttons sit well below the subtitle
+
+        if (hardcore) {
+            // Two buttons side by side, centred as a group.
+            int gap = 24;
+            int eachW = Math.min(280, (this.width - 80 - gap) / 2);
+            int groupW = eachW * 2 + gap;
+            int startX = (this.width - groupW) / 2;
+            this.btnW = eachW;   this.btnX = startX;
+            this.btn2W = eachW;  this.btn2X = startX + eachW + gap;
+            this.btn2Y = this.btnY;
+        } else {
+            this.btnW = Math.min(420, this.width - 80);
+            this.btnX = (this.width - this.btnW) / 2;
+            this.btn2W = 0; this.btn2X = 0; this.btn2Y = 0;
+        }
+        this.openedAt = System.currentTimeMillis();
     }
 
     /** Real-time feel: the world keeps rendering behind the dim overlay. */
@@ -72,70 +126,117 @@ public class RedeployDeathScreen extends Screen {
         if (done) return;
         ticksOpen++;
 
-        // Cancel the hold if the cursor drifted off the button.
-        if (holding && !insideBtn(lastMx, lastMy)) {
-            holding = false;
+        // Cancel the hold if the cursor drifted off the held button.
+        if (holdBtn != BTN_NONE && !insideBtn(holdBtn, lastMx, lastMy)) {
+            holdBtn = BTN_NONE;
             holdTicks = 0;
         }
 
-        if (holding && ready()) {
+        if (holdBtn != BTN_NONE && ready()) {
             holdTicks++;
             if (holdTicks % TICK_EVERY == 0) {
                 float t = holdTicks / (float) HOLD_REQUIRED;   // 0..1
                 playSound(TICK_SOUND, 1.0f + t * 1.2f);     // rising pitch = tension
             }
             if (holdTicks >= HOLD_REQUIRED) {
-                doRespawn();
+                complete(holdBtn);
             }
+        }
+    }
+
+    /** Fire the action for the chosen button. */
+    private void complete(int btn) {
+        if (hardcore && btn == BTN_QUIT) {
+            quitToTitle();
+        } else {
+            doRespawn();   // normal respawn, or hardcore spectate (server forces spectator)
         }
     }
 
     @Override
     public void render(GuiGraphics gui, int mouseX, int mouseY, float partial) {
-        // Dim the world behind the overlay.
-        gui.fill(0, 0, this.width, this.height, 0xCC000000);
-        // Subtle dark vignette top & bottom for the COD vibe.
-        gui.fillGradient(0, 0, this.width, this.height / 4, 0x33000000, 0x00000000);
-        gui.fillGradient(0, (this.height * 3) / 4, this.width, this.height, 0x00000000, 0x33000000);
+        long elapsed = System.currentTimeMillis() - openedAt;
+        // 0 during the red flash, ramps to 1 across the navy fade + GUI fade-in.
+        float t = clamp((float) (elapsed - INTRO_RED) / INTRO_FADE, 0f, 1f);
+        int overlay = lerpColor(RED_OVERLAY, NAVY_OVERLAY, t);
+        gui.fill(0, 0, this.width, this.height, overlay);
+
+        // Subtle dark vignette top & bottom for the COD vibe (fades in with GUI).
+        gui.fillGradient(0, 0, this.width, this.height / 4,
+                withAlpha(0x33000000, t), 0x00000000);
+        gui.fillGradient(0, (this.height * 3) / 4, this.width, this.height,
+                0x00000000, withAlpha(0x33000000, t));
 
         super.render(gui, mouseX, mouseY, partial);
 
+        // During the pure-red flash there is no GUI yet.
+        if (t <= 0.001f) return;
+
         int cx = this.width / 2;
+        int titleY = (int) (this.height * 0.28);
+        int subY = titleY + 64;
 
         // --- Title (large, red) ---
-        Component title = Component.translatable("screen.redeploy.title");   // 你已死亡
+        Component title = Component.translatable(
+                hardcore ? "screen.redeploy.title.hardcore" : "screen.redeploy.title");
         gui.pose().pushMatrix();
-        gui.pose().translate(cx, (float) (this.height * 0.30));
+        gui.pose().translate(cx, (float) titleY);
         gui.pose().scale(3.0f, 3.0f);
-        gui.drawCenteredString(this.font, title, 0, 0, 0xFFD23B2E);
+        gui.drawCenteredString(this.font, title, 0, 0, withAlpha(0xFFD23B2E, t));
         gui.pose().popMatrix();
 
         // --- Subtitle (small, grey) ---
-        Component sub = Component.translatable("screen.redeploy.subtitle");  // 重新部署 / REDEPLOY
-        gui.drawCenteredString(this.font, sub, cx, (int) (this.height * 0.30) + 56, 0xFF9A9A9A);
+        Component sub = Component.translatable(
+                hardcore ? "screen.redeploy.subtitle.hardcore" : "screen.redeploy.subtitle");
+        gui.drawCenteredString(this.font, sub, cx, subY, withAlpha(0xFF9A9A9A, t));
 
-        // --- Hint above the button ---
+        // --- Hint above the buttons ---
         Component hint = hint();
-        gui.drawCenteredString(this.font, hint, cx, this.btnY - 26, 0xFFBFBFBF);
+        gui.drawCenteredString(this.font, hint, cx, this.btnY - 26, withAlpha(0xFFBFBFBF, t));
 
-        // --- Redeploy button ---
-        int border = holding ? 0xFFE8B339 : 0xFF5A5A5A;
-        gui.fill(this.btnX, this.btnY, this.btnX + this.btnW, this.btnY + this.btnH, 0x66000000);
-        gui.renderOutline(this.btnX, this.btnY, this.btnW, this.btnH, border);
-
-        float p = Math.max(0f, Math.min(1f, holdTicks / (float) HOLD_REQUIRED));
-        if (p > 0f) {
-            int fillW = (int) (this.btnW * p);
-            gui.fill(this.btnX, this.btnY + this.btnH - 5, this.btnX + fillW, this.btnY + this.btnH, 0xFFE8B339);
+        // --- Buttons ---
+        if (hardcore) {
+            drawButton(gui, BTN_SPECTATE, btnX, btnY, btnW, btnH, t, "screen.redeploy.button.spectate");
+            drawButton(gui, BTN_QUIT, btn2X, btn2Y, btn2W, btn2H, t, "screen.redeploy.button.quit");
+        } else {
+            drawButton(gui, BTN_REDEPLOY, btnX, btnY, btnW, btnH, t, "screen.redeploy.button");
         }
-
-        Component label = Component.translatable("screen.redeploy.button");  // 重新部署 / REDEPLOY
-        gui.drawCenteredString(this.font, label, cx, this.btnY + this.btnH / 2 - 4, 0xFFFFFFFF);
 
         // --- Author watermark ---
         Component credit = Component.literal("ReDeploy · Mrkun114514");
         int cw = this.font.width(credit);
-        gui.drawString(this.font, credit, this.width - cw - 8, this.height - 14, 0x88909090, false);
+        gui.drawString(this.font, credit, this.width - cw - 8, this.height - 14,
+                withAlpha(0x88909090, t), false);
+    }
+
+    /** Draw one button with hover / hold feedback and a full-width progress fill. */
+    private void drawButton(GuiGraphics gui, int id, int x, int y, int w, int h,
+                            float t, String labelKey) {
+        if (w <= 0) return;
+        boolean hovering = ready() && insideBtn(id, lastMx, lastMy) && holdBtn == BTN_NONE && !done;
+        boolean holdingThis = holdBtn == id;
+        int border;
+        if (holdingThis) {
+            border = 0xFFE8B339;                                  // gold while holding
+        } else if (hovering) {
+            border = 0xFFC8A24A;                                  // brighter gold on hover
+        } else {
+            border = 0xFF5A5A5A;                                  // idle grey
+        }
+        int fillBase = hovering ? 0x88000000 : 0x66000000;
+        gui.fill(x, y, x + w, y + h, withAlpha(fillBase, t));
+        gui.renderOutline(x, y, w, h, withAlpha(border, t));
+
+        // Progress fills the WHOLE button width (COD style), not just a 5px strip.
+        float p = holdingThis ? Math.max(0f, Math.min(1f, holdTicks / (float) HOLD_REQUIRED)) : 0f;
+        if (p > 0f) {
+            int fillW = (int) (w * p);
+            gui.fill(x, y, x + fillW, y + h, withAlpha(0x55E8B339, t));
+        }
+
+        Component label = Component.translatable(labelKey);
+        gui.drawCenteredString(this.font, label, x + w / 2, y + h / 2 - 4,
+                withAlpha(0xFFFFFFFF, t));
     }
 
     // ---- input -------------------------------------------------------------
@@ -145,7 +246,6 @@ public class RedeployDeathScreen extends Screen {
         lastMx = mouseX;
         lastMy = mouseY;
         if (canStartHold(mouseX, mouseY)) {
-            holding = true;
             return true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -155,7 +255,7 @@ public class RedeployDeathScreen extends Screen {
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
         lastMx = mouseX;
         lastMy = mouseY;
-        holding = false;
+        holdBtn = BTN_NONE;
         holdTicks = 0;
         return true;
     }
@@ -164,8 +264,8 @@ public class RedeployDeathScreen extends Screen {
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
         lastMx = mouseX;
         lastMy = mouseY;
-        if (holding && !insideBtn(mouseX, mouseY)) {
-            holding = false;
+        if (holdBtn != BTN_NONE && !insideBtn(holdBtn, mouseX, mouseY)) {
+            holdBtn = BTN_NONE;
             holdTicks = 0;
         }
         return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
@@ -178,11 +278,42 @@ public class RedeployDeathScreen extends Screen {
         super.mouseMoved(mouseX, mouseY);
     }
 
-    /** Consume ESC so the screen cannot be closed without redeploying. */
+    /**
+     * ESC opens the vanilla pause menu (the standard {@code PauseScreen(false)}),
+     * giving the player a backdoor to disconnect / quit to title / open options.
+     * {@code goingToPause} tells {@link #removed()} that this transition is the
+     * intentional ESC, so it must NOT resolve the player. From the pause menu the
+     * player can quit at any time; if they instead resume, in-game ESC always
+     * reopens pause, so a player is never permanently trapped.
+     */
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        if (keyCode == 256) return true; // ESC
+        if (keyCode == 256) { // ESC
+            goingToPause = true;
+            Minecraft.getInstance().setScreen(new PauseScreen(false));
+            return true;
+        }
         return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    /**
+     * Any path that closes this screen (another mod, MC internals, the normal
+     * completion path) resolves the player so they never get stuck. In normal mode
+     * that's a redeploy; in Hardcore that's returning to title (a Hardcore
+     * character cannot be force-respawned). The {@code goingToPause} flag suppresses
+     * this for the intentional ESC->pause transition; {@code done} guards against a
+     * double call on the normal completion path.
+     */
+    @Override
+    public void removed() {
+        if (!goingToPause) {
+            if (hardcore) {
+                quitToTitle();
+            } else {
+                doRespawn();
+            }
+        }
+        super.removed();
     }
 
     // ---- helpers -----------------------------------------------------------
@@ -191,18 +322,33 @@ public class RedeployDeathScreen extends Screen {
         return ticksOpen >= READY_DELAY;
     }
 
-    private boolean insideBtn(double mx, double my) {
-        return mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH;
+    private boolean insideBtn(int id, double mx, double my) {
+        if (id == BTN_REDEPLOY || id == BTN_SPECTATE) {
+            return mx >= btnX && mx <= btnX + btnW && my >= btnY && my <= btnY + btnH;
+        } else if (id == BTN_QUIT) {
+            return mx >= btn2X && mx <= btn2X + btn2W && my >= btn2Y && my <= btn2Y + btn2H;
+        }
+        return false;
     }
 
     private boolean canStartHold(double mx, double my) {
-        return ready() && insideBtn(mx, my) && !done;
+        if (!ready() || done) return false;
+        if (hardcore) {
+            if (insideBtn(BTN_SPECTATE, mx, my)) { holdBtn = BTN_SPECTATE; holdTicks = 0; return true; }
+            if (insideBtn(BTN_QUIT, mx, my))      { holdBtn = BTN_QUIT;      holdTicks = 0; return true; }
+            return false;
+        } else {
+            if (insideBtn(BTN_REDEPLOY, mx, my)) { holdBtn = BTN_REDEPLOY; holdTicks = 0; return true; }
+            return false;
+        }
     }
 
     private Component hint() {
-        if (!ready()) return Component.translatable("screen.redeploy.hint.wait");
-        if (holding && holdTicks < HOLD_REQUIRED) return Component.translatable("screen.redeploy.hint.holding");
-        return Component.translatable("screen.redeploy.hint");
+        String base;
+        if (!ready()) base = "screen.redeploy.hint.wait";
+        else if (holdBtn != BTN_NONE && holdTicks < HOLD_REQUIRED) base = "screen.redeploy.hint.holding";
+        else base = "screen.redeploy.hint";
+        return Component.translatable(hardcore ? base + ".hardcore" : base);
     }
 
     private void doRespawn() {
@@ -212,9 +358,18 @@ public class RedeployDeathScreen extends Screen {
         Minecraft mc = Minecraft.getInstance();
         LocalPlayer player = mc.player;
         if (player != null && player.isDeadOrDying()) {
-            player.respawn();
+            player.respawn();   // in Hardcore the server respawns the player as a spectator
         }
         mc.setScreen(null);
+    }
+
+    /** Hardcore: leaving to the title screen (退出战区). */
+    private void quitToTitle() {
+        if (done) return;
+        done = true;
+        playSound(CONFIRM_SOUND, 1.0f);
+        Minecraft mc = Minecraft.getInstance();
+        mc.disconnect(new TitleScreen(), false);
     }
 
     private void playSound(ResourceLocation id, float pitch) {
@@ -223,5 +378,25 @@ public class RedeployDeathScreen extends Screen {
         SoundEvent event = ref.get().value();
         SoundManager mgr = Minecraft.getInstance().getSoundManager();
         mgr.play(SimpleSoundInstance.forUI(event, pitch));
+    }
+
+    private static float clamp(float v, float lo, float hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
+
+    private static int lerpColor(int a, int b, float t) {
+        t = clamp(t, 0f, 1f);
+        int ar = (a >> 24) & 0xFF, ag = (a >> 16) & 0xFF, ab = (a >> 8) & 0xFF, aa = a & 0xFF;
+        int br = (b >> 24) & 0xFF, bg = (b >> 16) & 0xFF, bb = (b >> 8) & 0xFF, ba = b & 0xFF;
+        int r = (int) (ar + (br - ar) * t);
+        int g = (int) (ag + (bg - ag) * t);
+        int bl = (int) (ab + (bb - ab) * t);
+        int al = (int) (aa + (ba - aa) * t);
+        return (r << 24) | (g << 16) | (bl << 8) | al;
+    }
+
+    private static int withAlpha(int rgb, float a) {
+        int al = (int) (clamp(a, 0f, 1f) * 255);
+        return (rgb & 0x00FFFFFF) | (al << 24);
     }
 }

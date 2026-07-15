@@ -1,8 +1,15 @@
 {
   "screen.redeploy.title": "YOU DIED",
+  "screen.redeploy.title.hardcore": "YOU WERE ELIMINATED",
   "screen.redeploy.subtitle": "REDEPLOY",
+  "screen.redeploy.subtitle.hardcore": "HARDCORE",
   "screen.redeploy.button": "REDEPLOY",
+  "screen.redeploy.button.spectate": "DETACH",
+  "screen.redeploy.button.quit": "EXTRACT",
   "screen.redeploy.hint": "Hold [REDEPLOY] to respawn",
+  "screen.redeploy.hint.hardcore": "Hold a button to choose",
   "screen.redeploy.hint.wait": "Locating respawn point...",
-  "screen.redeploy.hint.holding": "Redeploying..."
+  "screen.redeploy.hint.wait.hardcore": "Preparing...",
+  "screen.redeploy.hint.holding": "Redeploying...",
+  "screen.redeploy.hint.holding.hardcore": "Confirming..."
 }

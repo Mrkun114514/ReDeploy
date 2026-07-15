@@ -1,6 +1,7 @@
 package com.mrkun114514.redeploy.client;
 
 import com.mrkun114514.redeploy.Redeploy;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.DeathScreen;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
@@ -23,7 +24,11 @@ public class ClientEvents {
     @SubscribeEvent
     public static void onScreenOpening(ScreenEvent.Opening event) {
         if (event.getScreen() instanceof DeathScreen) {
-            event.setNewScreen(new RedeployDeathScreen());
+            // Hardcore deaths use a different vanilla screen intent ("you are done");
+            // derive it from the world's hardcore flag (stable LevelData API).
+            Minecraft mc = Minecraft.getInstance();
+            boolean hardcore = mc.level != null && mc.level.getLevelData().isHardcore();
+            event.setNewScreen(new RedeployDeathScreen(hardcore));
         }
     }
 }

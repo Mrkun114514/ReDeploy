@@ -1,8 +1,15 @@
 {
   "screen.redeploy.title": "你已死亡",
+  "screen.redeploy.title.hardcore": "你已阵亡",
   "screen.redeploy.subtitle": "重新部署  ·  REDEPLOY",
+  "screen.redeploy.subtitle.hardcore": "极限模式",
   "screen.redeploy.button": "重新部署",
+  "screen.redeploy.button.spectate": "脱离机体",
+  "screen.redeploy.button.quit": "退出战区",
   "screen.redeploy.hint": "长按【重新部署】以重生",
+  "screen.redeploy.hint.hardcore": "长按对应按钮以选择",
   "screen.redeploy.hint.wait": "正在定位重生点…",
-  "screen.redeploy.hint.holding": "正在重新部署…"
+  "screen.redeploy.hint.wait.hardcore": "准备中…",
+  "screen.redeploy.hint.holding": "正在重新部署…",
+  "screen.redeploy.hint.holding.hardcore": "确认中…"
 }
