@@ -48,10 +48,18 @@ neoForge {
     // Specify the version of NeoForge to use.
     version = project.neo_version
 
+    /*
+    // Temporarily disabled because the egress/network is dropping all response
+    // bodies from maven.neoforged.net, so the Parchment artifact cannot be
+    // fetched. NeoForge falls back to official/Mojang mappings, which are
+    // sufficient for this client-side GUI mod. Re-enable when the network is
+    // healthy or when you can build on a network that reaches the Parchment
+    // repository.
     parchment {
         mappingsVersion = project.parchment_mappings_version
         minecraftVersion = project.parchment_minecraft_version
     }
+    */
 
     // Default run configurations.
     // These can be tweaked, removed, or duplicated as needed.
