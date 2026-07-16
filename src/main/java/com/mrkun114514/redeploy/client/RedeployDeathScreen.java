@@ -23,12 +23,12 @@ import java.util.Optional;
  * In Hardcore mode the screen offers <b>two</b> choices, each a long-press button:
  * {@code [DETACH]} (脱离机体 — respawn as a spectator) and {@code [EXTRACT]}
  * (退出战区 — leave to the title screen), since a Hardcore character cannot be
- * normally reborn.</p>
+ * normally reborn. The Hardcore screen is visually distinct (near-black resting
+ * overlay + cold white title) from the normal red/navy one.</p>
  *
  * <p>On open, the screen does NOT show the GUI immediately: it flashes a muted
- * red for a beat, then fades to a dark navy, and only then does the COD
- * overlay (title / buttons) fade in — matching the "you are gone" beat before
- * the menu appears.</p>
+ * red for a beat, then fades to the resting overlay, and only then does the
+ * COD overlay (title / buttons) fade in.</p>
  *
  * @author Mrkun114514
  */
@@ -43,14 +43,19 @@ public class RedeployDeathScreen extends Screen {
     private static final int TICK_EVERY = 8;
 
     // Intro animation (wall-clock based, independent of the mod's tick timers).
-    /** ms the solid-red flash lasts before it starts fading to navy. */
+    /** ms the solid-red flash lasts before it starts fading to the resting overlay. */
     private static final long INTRO_RED = 1200;
-    /** ms the red->navy fade + GUI fade-in takes. */
+    /** ms the red->resting fade + GUI fade-in takes. */
     private static final long INTRO_FADE = 1000;
 
     // Overlay colours as 0xAARRGGBB. Muted + semi-transparent so it is not blinding.
-    private static final int RED_OVERLAY = 0x99D23B2E;   // soft red flash
-    private static final int NAVY_OVERLAY = 0xDD0A0E2A;  // dark navy resting state
+    private static final int RED_FLASH = 0x99D23B2E;       // soft red flash (both modes)
+    private static final int NAVY_REST = 0xDD0A0E2A;       // normal resting: dark navy
+    private static final int DARK_REST = 0xDD0A0A0A;        // hardcore resting: near-black
+
+    // Title colour: normal = red, hardcore = cold white ("game over" feel).
+    private static final int TITLE_NORMAL = 0xFFD23B2E;
+    private static final int TITLE_HARDCORE = 0xFFE8E8E8;
 
     // Vanilla sounds are used so the mod ships with zero binary assets.
     private static final ResourceLocation TICK_SOUND =
@@ -72,8 +77,8 @@ public class RedeployDeathScreen extends Screen {
     private final boolean hardcore;
 
     private double lastMx = 0, lastMy = 0;
-    private int btnX, btnY, btnW, btnH;          // primary button (normal) / left (hardcore)
-    private int btn2X, btn2Y, btn2W, btn2H;     // hardcore right button (0-size when unused)
+    private int btnX, btnY, btnW, btnH;          // primary button (normal) / top (hardcore)
+    private int btn2X, btn2Y, btn2W, btn2H;     // hardcore bottom button (0-size when unused)
     private long openedAt;
     /** Set when ESC is used to open the pause menu, so {@link #removed()} won't
      *  mistake the open-pause transition for a real close and resolve the player. */
@@ -96,21 +101,20 @@ public class RedeployDeathScreen extends Screen {
         // the buttons, even on small screens.
         int titleY = (int) (this.height * 0.28);
         int subY = titleY + 64;
-        this.btnY = subY + 80;          // buttons sit well below the subtitle
-
+        // Hardcore buttons are the SAME size as the normal REDEPLOY button.
+        this.btnW = Math.min(420, this.width - 80);
+        this.btnX = (this.width - this.btnW) / 2;
         if (hardcore) {
-            // Two buttons side by side, centred as a group.
-            int gap = 24;
-            int eachW = Math.min(280, (this.width - 80 - gap) / 2);
-            int groupW = eachW * 2 + gap;
-            int startX = (this.width - groupW) / 2;
-            this.btnW = eachW;   this.btnX = startX;
-            this.btn2W = eachW;  this.btn2X = startX + eachW + gap;
-            this.btn2Y = this.btnY;
+            // two stacked buttons, each identical in size to REDEPLOY
+            this.btnY = subY + 70;
+            this.btn2X = this.btnX;
+            this.btn2Y = this.btnY + this.btnH + 16;
+            this.btn2W = this.btnW;
         } else {
-            this.btnW = Math.min(420, this.width - 80);
-            this.btnX = (this.width - this.btnW) / 2;
-            this.btn2W = 0; this.btn2X = 0; this.btn2Y = 0;
+            this.btnY = subY + 80;
+            this.btn2W = 0;
+            this.btn2X = 0;
+            this.btn2Y = 0;
         }
         this.openedAt = System.currentTimeMillis();
     }
@@ -124,6 +128,14 @@ public class RedeployDeathScreen extends Screen {
     @Override
     public void tick() {
         if (done) return;
+        Minecraft mc = Minecraft.getInstance();
+        // Server-side respawn (e.g. an instant-respawn / auto-revive plugin) makes the
+        // player alive again. Proactively close the GUI instead of force-triggering
+        // our own respawn — the server already did the job.
+        if (mc.player != null && !mc.player.isDeadOrDying()) {
+            mc.setScreen(null);
+            return;
+        }
         ticksOpen++;
 
         // Cancel the hold if the cursor drifted off the held button.
@@ -156,9 +168,10 @@ public class RedeployDeathScreen extends Screen {
     @Override
     public void render(GuiGraphics gui, int mouseX, int mouseY, float partial) {
         long elapsed = System.currentTimeMillis() - openedAt;
-        // 0 during the red flash, ramps to 1 across the navy fade + GUI fade-in.
+        // 0 during the red flash, ramps to 1 across the fade + GUI fade-in.
         float t = clamp((float) (elapsed - INTRO_RED) / INTRO_FADE, 0f, 1f);
-        int overlay = lerpColor(RED_OVERLAY, NAVY_OVERLAY, t);
+        int rest = hardcore ? DARK_REST : NAVY_REST;
+        int overlay = lerpColor(RED_FLASH, rest, t);
         gui.fill(0, 0, this.width, this.height, overlay);
 
         // Subtle dark vignette top & bottom for the COD vibe (fades in with GUI).
@@ -176,13 +189,14 @@ public class RedeployDeathScreen extends Screen {
         int titleY = (int) (this.height * 0.28);
         int subY = titleY + 64;
 
-        // --- Title (large, red) ---
+        // --- Title (large) ---
         Component title = Component.translatable(
                 hardcore ? "screen.redeploy.title.hardcore" : "screen.redeploy.title");
         gui.pose().pushMatrix();
         gui.pose().translate(cx, (float) titleY);
         gui.pose().scale(3.0f, 3.0f);
-        gui.drawCenteredString(this.font, title, 0, 0, withAlpha(0xFFD23B2E, t));
+        gui.drawCenteredString(this.font, title, 0, 0,
+                withAlpha(hardcore ? TITLE_HARDCORE : TITLE_NORMAL, t));
         gui.pose().popMatrix();
 
         // --- Subtitle (small, grey) ---
@@ -280,11 +294,12 @@ public class RedeployDeathScreen extends Screen {
 
     /**
      * ESC opens the vanilla pause menu (the standard {@code PauseScreen(false)}),
-     * giving the player a backdoor to disconnect / quit to title / open options.
+     * giving the player a backdoor to quit to title / open options. From the pause
+     * menu, "Quit to Title" / "Disconnect" is the real escape — a dead player
+     * who picks "Back to Game" simply returns to the dead world (you cannot
+     * un-die), which re-shows this screen; that is expected Hardcore behaviour.
      * {@code goingToPause} tells {@link #removed()} that this transition is the
-     * intentional ESC, so it must NOT resolve the player. From the pause menu the
-     * player can quit at any time; if they instead resume, in-game ESC always
-     * reopens pause, so a player is never permanently trapped.
+     * intentional ESC, so it must NOT resolve the player.
      */
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
@@ -297,19 +312,18 @@ public class RedeployDeathScreen extends Screen {
     }
 
     /**
-     * Any path that closes this screen (another mod, MC internals, the normal
-     * completion path) resolves the player so they never get stuck. In normal mode
-     * that's a redeploy; in Hardcore that's returning to title (a Hardcore
-     * character cannot be force-respawned). The {@code goingToPause} flag suppresses
-     * this for the intentional ESC->pause transition; {@code done} guards against a
-     * double call on the normal completion path.
+     * Safety net for genuine external closes (another mod, MC internals). Only the
+     * normal mode resolves the player (respawn) — and only while they are still
+     * dead. Hardcore mode performs NO automatic action here: the two buttons are
+     * the only ways out (spectate / quit to title), and force-quitting on every
+     * close would yank the player to the title screen instantly. Server-driven
+     * respawns are handled by {@link #tick()} closing the GUI.
      */
     @Override
     public void removed() {
-        if (!goingToPause) {
-            if (hardcore) {
-                quitToTitle();
-            } else {
+        if (!goingToPause && !done) {
+            Minecraft mc = Minecraft.getInstance();
+            if (!hardcore && mc.player != null && mc.player.isDeadOrDying()) {
                 doRespawn();
             }
         }
@@ -363,7 +377,7 @@ public class RedeployDeathScreen extends Screen {
         mc.setScreen(null);
     }
 
-    /** Hardcore: leaving to the title screen (退出战区). */
+    /** Hardcore: leaving to the title screen (退出战区). Same as vanilla "Title screen". */
     private void quitToTitle() {
         if (done) return;
         done = true;
