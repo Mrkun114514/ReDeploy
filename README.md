@@ -1,103 +1,105 @@
-# ReDeploy —— 战术重生（COD 风格死亡动画）
+# ReDeploy —— 战术重生（COD 风格死亡界面）
 
 > 只改 GUI。用 Call of Duty 风格的「你已死亡 / REDEPLOY」覆盖原版死亡界面。
 > 死亡后**长按【重新部署】**读条重生，长按过程中播放**滴答确认音效**，完成时播放确认音。
+> 极限（硬核）模式提供 **脱离机体 / 退出战区** 两个独立长按选项，样式与普通模式区分。
 
-- **MC 版本**：1.21.8
-- **加载器**：NeoForge（`neo_version` = 21.8.53）
-- **作者**：Mrkun114514
-- **协议**：MIT
-- **只改 GUI，无任何玩法改动**，服务端/客户端均可加载（GUI 逻辑仅在客户端生效）。
+- **作者**：Mrkun114514 ｜ **协议**：MIT ｜ **只改 GUI，无任何玩法改动**
+- 客户端 mod（GUI 逻辑仅在客户端生效），可与纯净服务端共存。
 
 ---
 
-## ✨ 特性
+## 📦 版本矩阵（每个里程碑 = 一个独立构建）
 
-- 覆盖原版 `DeathScreen`，替换为深色全屏遮罩 + 红色大字「你已死亡」+「REDEPLOY」副标题。
-- **长按重生**：必须**持续按住**「重新部署」按钮约 3 秒（读条填充），松手或移出按钮即重置。
-- **滴答确认音效**：长按过程中按节奏播放滴答声，音高随进度升高（紧张感）。
-- **确认音**：读条满时播放一声确认音，随后自动重生并关闭界面。
-- 打开后约 2 秒进入「可部署」状态（提示「正在定位重生点…」）。
-- 按 ESC 无效，必须完成长按部署才能重生。
-- 原版音效使用 MC 自带音（`block.comparator.click` / `entity.player.levelup`），**开箱即用，无需任何二进制音频资源**。
+`1.20.1 → 1.21.11` 横跨多代 Minecraft API（尤其 **1.21.6** 把 GUI 渲染从 `PoseStack` 换成
+`Matrix3x2fStack`），无法用一个 jar 通吃。因此按「API 代」拆成多个里程碑，每个里程碑
+**向上兼容它之后、下一里程碑之前的小版本**。
+
+| 里程碑目录 | 覆盖 MC 版本 | 加载器 | GUI 渲染 API | 状态 |
+|---|---|---|---|---|
+| `neoforge-1.21.8/` | 1.21.6 – 1.21.11 | NeoForge | Matrix3x2fStack | ✅ 已构建 |
+| `fabric-1.21.8/` | 1.21.6 – 1.21.11 | Fabric | Matrix3x2fStack | ✅ 已构建 |
+| `neoforge-1.21.1/` | 1.21 – 1.21.1 | NeoForge | PoseStack | 🚧 计划中 |
+| `fabric-1.21.1/` | 1.21 – 1.21.1 | Fabric | PoseStack | 🚧 计划中 |
+| `neoforge-1.20.1/` | 1.20.1 | NeoForge | PoseStack | 🚧 计划中 |
+| `fabric-1.20.1/` | 1.20.1 | Fabric | PoseStack | 🚧 计划中 |
+
+> 说明：1.21.8 里程碑与 1.21.11 共用同一套渲染 API，理论上直接兼容 1.21.11；
+> 若后续 1.21.11 出现破坏性改动，会再单独出 `*-1.21.11/` 目录。
 
 ---
 
 ## 🛠 构建
 
-需要 **JDK 21**。
+每个里程碑是**独立的 Gradle 工程**，进入对应目录构建即可。需要 **JDK 21**。
 
 ```bash
-# 构建产出 jar -> build/libs/redeploy-1.0.0.jar
-./gradlew build
+# 例：构建 NeoForge 1.21.8
+cd neoforge-1.21.8
+./gradlew build            # 产出 build/libs/redeploy-1.0.0.jar
 
-# 在本机客户端测试（会自动生成 run/ 配置并启动 MC）
+# 例：构建 Fabric 1.21.8
+cd fabric-1.21.8
+./gradlew build            # 产出 build/libs/redeploy-fabric-1.0.0.jar
+
+# 本机客户端测试
 ./gradlew runClient
 ```
 
-首次构建会下载 Minecraft 与 NeoForge 并反编译，可能耗时数分钟，请耐心等待。
-将生成的 `build/libs/redeploy-1.0.0.jar` 放入 `.minecraft/mods/` 即可。
+首次构建会下载并反编译 Minecraft，耗时数分钟。把生成的 jar 放入 `.minecraft/mods/`
+（Fabric 版还需安装 **Fabric API**）。
 
 ---
 
-## 📁 项目结构
+## ✨ 特性
 
-```
-redeploy/
-├── build.gradle / settings.gradle / gradle.properties   # 基于官方 MDK-1.21.8-ModDevGradle
-├── gradlew / gradlew.bat / gradle/wrapper/            # Gradle 9.2.1 wrapper（开箱即用）
-├── src/main/java/com/mrkun114514/redeploy/
-│   ├── Redeploy.java                       # @Mod 入口
-│   └── client/
-│       ├── ClientEvents.java             # ScreenEvent.Opening 拦截并替换死亡界面
-│       └── RedeployDeathScreen.java     # COD 风格死亡界面（长按部署 + 音效）
-├── src/main/templates/META-INF/neoforge.mods.toml    # 构建时由 generateModMetadata 展开
-└── src/main/resources/
-    └── assets/redeploy/lang/{zh_cn,en_us}.json
-```
-
-> 构建系统：本项目使用 **ModDevGradle**（`net.neoforged.moddev` 2.0.141）。
-> 旧版 NeoGradle（`net.neoforged.gradle.userdev` 7.1.38）在 Maven 仓库中已无法解析，故迁移到官方推荐的 ModDevGradle 等价方案。
-> `neoforge.mods.toml` 现在放在 `src/main/templates/` 下，由 `generateModMetadata` 任务展开变量后输出到 `build/generated/sources/modMetadata/`。
+- 覆盖原版 `DeathScreen`，深色全屏遮罩 + 大字标题 + 副标题。
+- **开屏动画**：先一瞬柔和红闪，再淡入静置遮罩与 COD 覆盖层（红色不刺眼）。
+- **长按重生**：持续按住「重新部署」约 3 秒（整条按钮进度填充），松手/移出即重置。
+- **滴答音效**：长按时按节奏播放滴答声，音高随进度升高；读条满播放确认音。
+- **极限模式**：
+  - 样式区分——近黑底 + 冷白标题（普通模式为红/海军蓝）。
+  - 两个等宽等高长按按钮：**脱离机体**（重生为旁观）/ **退出战区**（返回标题界面，**不删档**）。
+- **ESC 后门**：按 ESC 打开原版暂停菜单（可进设置/退出）；死亡状态下「返回游戏」会重新显示死亡界面（无法「未死」）。
+- **服务器自动重生检测**：若服务端开启立即重生/几秒后自动重生，检测到玩家复活时主动关闭 GUI。
+- 音效使用 MC 自带音（`block.comparator.click` / `entity.player.levelup`），**零二进制资源开箱即用**。
 
 ---
 
-## 🔊 想换成自定义滴答音效？
+## 📁 加载器差异（实现要点）
 
-默认用 MC 自带音，零资源即可运行。若要换成自己的「滴答 / 确认」音：
+核心界面 `RedeployDeathScreen.java` **只用原版 `net.minecraft.*` 类**，在同一渲染代内
+可被两种加载器**逐字复用**；差异只在「如何替换死亡界面」和模组入口：
 
-1. 准备两个 `.ogg` 文件（Vorbis 编码），例如
-   `src/main/resources/assets/redeploy/sounds/redeploy_tick.ogg`
-   `src/main/resources/assets/redeploy/sounds/redeploy_confirm.ogg`
-2. 新建 `src/main/resources/assets/redeploy/sounds.json`：
+| | NeoForge | Fabric |
+|---|---|---|
+| 替换机制 | `ScreenEvent.Opening` 事件拦截 | `ClientTickEvents` 检测到 `DeathScreen` 时换屏 |
+| 入口 | `@Mod` 主类 + 手动注册事件总线 | `ClientModInitializer`（`fabric.mod.json` client 入口）|
+| 映射 | 官方 Mojang 映射 | 官方 Mojang 映射（与 NeoForge 同名，便于共享源码）|
+
+---
+
+## 🔊 换成自定义滴答/确认音效？
+
+默认零资源即可运行。若要换成自己的音：
+
+1. 准备两个 `.ogg`（Vorbis），如 `assets/redeploy/sounds/redeploy_tick.ogg`、`..._confirm.ogg`。
+2. 新建 `assets/redeploy/sounds.json`：
    ```json
    {
-     "redeploy:redeploy_tick":   { "sounds": [ "redeploy:sounds/redeploy_tick" ] },
+     "redeploy:redeploy_tick":    { "sounds": [ "redeploy:sounds/redeploy_tick" ] },
      "redeploy:redeploy_confirm": { "sounds": [ "redeploy:sounds/redeploy_confirm" ] }
    }
    ```
-3. 在 `RedeployDeathScreen` 中用
-   `ResourceLocation.parse("redeploy:redeploy_tick")` / `...redeploy_confirm"`
-   替换 `TICK_SOUND` / `CONFIRM_SOUND` 即可。
-
-（也可改用 `DeferredRegister<SoundEvent>` 正式注册音效事件；当前用 `BuiltInRegistries.SOUND_EVENT.get(...)` 直接取资源，足够轻量。）
+3. 在 `RedeployDeathScreen` 中把 `TICK_SOUND` / `CONFIRM_SOUND` 换成
+   `ResourceLocation.parse("redeploy:redeploy_tick")` / `..._confirm`。
 
 ---
 
-## 📤 上传到 GitHub
+## 🤖 持续集成
 
-```bash
-cd redeploy
-git init
-git add .
-git commit -m "feat: ReDeploy - COD style death/respawn GUI (NeoForge 1.21.8)"
-# 在 GitHub 新建仓库后：
-git branch -M main
-git remote add origin https://github.com/<你的用户名>/redeploy.git
-git push -u origin main
-```
-
-仓库已包含 `.github/workflows/build.yml`，推送后会在 Actions 中自动用 JDK 21 跑 `./gradlew build` 并上传 jar 产物。
+`.github/workflows/build.yml` 用矩阵在干净的 JDK 21 环境中构建每个里程碑模块，
+推送后可在 Actions 里下载各版本 jar 产物。
 
 ---
 

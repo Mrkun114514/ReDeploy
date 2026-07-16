@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "redeploy",
+  "version": "${version}",
+  "name": "ReDeploy",
+  "description": "Call of Duty style death / redeploy screen. Hold to respawn; distinct Hardcore flow.",
+  "authors": [
+    "Mrkun114514"
+  ],
+  "contact": {
+    "homepage": "https://github.com/Mrkun114514/ReDeploy",
+    "sources": "https://github.com/Mrkun114514/ReDeploy",
+    "issues": "https://github.com/Mrkun114514/ReDeploy/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.mrkun114514.redeploy.client.RedeployClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-api": "*",
+    "minecraft": ">=1.21.6 <1.22",
+    "java": ">=21"
+  }
+}

@@ -8,7 +8,14 @@ on:
 
 jobs:
   build:
+    name: Build ${{ matrix.module }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - neoforge-1.21.8
+          - fabric-1.21.8
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,13 +27,14 @@ jobs:
           distribution: 'temurin'
 
       - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+        run: chmod +x ${{ matrix.module }}/gradlew
 
-      - name: Build with Gradle
-        run: ./gradlew build
+      - name: Build ${{ matrix.module }}
+        working-directory: ${{ matrix.module }}
+        run: ./gradlew build --stacktrace
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: redeploy-mod
-          path: build/libs/*.jar
+          name: redeploy-${{ matrix.module }}
+          path: ${{ matrix.module }}/build/libs/*.jar
