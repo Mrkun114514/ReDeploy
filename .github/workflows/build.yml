@@ -16,6 +16,9 @@ jobs:
         module:
           - neoforge-1.21.8
           - fabric-1.21.8
+          - neoforge-1.21.1
+          - fabric-1.21.1
+          - fabric-1.20.1
     steps:
       - name: Checkout
         uses: actions/checkout@v4

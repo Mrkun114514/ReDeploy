@@ -15,14 +15,14 @@
 `Matrix3x2fStack`），无法用一个 jar 通吃。因此按「API 代」拆成多个里程碑，每个里程碑
 **向上兼容它之后、下一里程碑之前的小版本**。
 
-| 里程碑目录 | 覆盖 MC 版本 | 加载器 | GUI 渲染 API | 状态 |
-|---|---|---|---|---|
-| `neoforge-1.21.8/` | 1.21.6 – 1.21.11 | NeoForge | Matrix3x2fStack | ✅ 已构建 |
-| `fabric-1.21.8/` | 1.21.6 – 1.21.11 | Fabric | Matrix3x2fStack | ✅ 已构建 |
-| `neoforge-1.21.1/` | 1.21 – 1.21.1 | NeoForge | PoseStack | 🚧 计划中 |
-| `fabric-1.21.1/` | 1.21 – 1.21.1 | Fabric | PoseStack | 🚧 计划中 |
-| `neoforge-1.20.1/` | 1.20.1 | NeoForge | PoseStack | 🚧 计划中 |
-| `fabric-1.20.1/` | 1.20.1 | Fabric | PoseStack | 🚧 计划中 |
+| 里程碑目录 | 覆盖 MC 版本 | 加载器 | GUI 渲染 API | JDK 目标 | 状态 |
+|---|---|---|---|---|---|
+| `neoforge-1.21.8/` | 1.21.6 – 1.21.11 | NeoForge | Matrix3x2fStack | 21 | ✅ CI 已构建 |
+| `fabric-1.21.8/` | 1.21.6 – 1.21.11 | Fabric | Matrix3x2fStack | 21 | ✅ CI 已构建 |
+| `neoforge-1.21.1/` | 1.21 – 1.21.1 | NeoForge | PoseStack | 21 | 🧪 CI 验证中 |
+| `fabric-1.21.1/` | 1.21 – 1.21.1 | Fabric | PoseStack | 21 | 🧪 CI 验证中 |
+| `fabric-1.20.1/` | 1.20.1 | Fabric | PoseStack | 17 | 🧪 CI 验证中 |
+| `neoforge-1.20.1/` | 1.20.1 | NeoForge (NeoGradle) | PoseStack | 17 | 🚧 计划中 |
 
 > 说明：1.21.8 里程碑与 1.21.11 共用同一套渲染 API，理论上直接兼容 1.21.11；
 > 若后续 1.21.11 出现破坏性改动，会再单独出 `*-1.21.11/` 目录。
@@ -31,7 +31,8 @@
 
 ## 🛠 构建
 
-每个里程碑是**独立的 Gradle 工程**，进入对应目录构建即可。需要 **JDK 21**。
+每个里程碑是**独立的 Gradle 工程**，进入对应目录构建即可。用 **JDK 21** 即可构建所有里程碑
+（1.20.1 里程碑虽面向 Java 17 运行时，但用 JDK 21 编译并以 `--release 17` 产出 17 字节码，可正常运行于 1.20.1）。
 
 ```bash
 # 例：构建 NeoForge 1.21.8
