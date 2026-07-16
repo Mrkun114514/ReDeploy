@@ -30,15 +30,15 @@ processResources {
     }
 }
 
+// MC 1.20.1 ships a Java 17 runtime, so target Java 17 bytecode.
+// Only set `options.release` (do NOT also set sourceCompatibility/targetCompatibility —
+// that combination triggers a Gradle 9 misconfiguration warning/error).
 tasks.withType(JavaCompile).configureEach {
     it.options.encoding = 'UTF-8'
-    // MC 1.20.1 ships a Java 17 runtime, so target Java 17 bytecode.
     it.options.release = 17
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
     // Loom attaches sourcesJar to the build task when present.
     withSourcesJar()
 }

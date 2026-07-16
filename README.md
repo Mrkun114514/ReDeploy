@@ -22,7 +22,7 @@
 | `neoforge-1.21.1/` | 1.21 – 1.21.1 | NeoForge | PoseStack | 21 | 🧪 CI 验证中 |
 | `fabric-1.21.1/` | 1.21 – 1.21.1 | Fabric | PoseStack | 21 | 🧪 CI 验证中 |
 | `fabric-1.20.1/` | 1.20.1 | Fabric | PoseStack | 17 | 🧪 CI 验证中 |
-| `neoforge-1.20.1/` | 1.20.1 | NeoForge (NeoGradle) | PoseStack | 17 | 🚧 计划中 |
+| `neoforge-1.20.1/` | 1.20.1 | NeoForge (NeoGradle) | PoseStack | 17 | 🧪 CI 验证中 |
 
 > 说明：1.21.8 里程碑与 1.21.11 共用同一套渲染 API，理论上直接兼容 1.21.11；
 > 若后续 1.21.11 出现破坏性改动，会再单独出 `*-1.21.11/` 目录。
@@ -31,8 +31,10 @@
 
 ## 🛠 构建
 
-每个里程碑是**独立的 Gradle 工程**，进入对应目录构建即可。用 **JDK 21** 即可构建所有里程碑
-（1.20.1 里程碑虽面向 Java 17 运行时，但用 JDK 21 编译并以 `--release 17` 产出 17 字节码，可正常运行于 1.20.1）。
+每个里程碑是**独立的 Gradle 工程**，进入对应目录构建即可。
+
+- **NeoForge 1.21.x / Fabric 1.21.x / Fabric 1.20.1**：用 **JDK 21** 即可（1.20.1 的 Fabric 版虽面向 Java 17 运行时，但用 JDK 21 编译并以 `--release 17` 产出 17 字节码，可正常跑在 1.20.1）。
+- **NeoForge 1.20.1（NeoGradle 6.x / ForgeGradle 代）**：**必须用 JDK 17 运行 Gradle**（NeoGradle 6.x 在 JDK 21 上无法启动），CI 已为该矩阵项单独装 JDK 17。本机同理：`sdk/jenv` 切到 17 后再 `./gradlew build`。
 
 ```bash
 # 例：构建 NeoForge 1.21.8
