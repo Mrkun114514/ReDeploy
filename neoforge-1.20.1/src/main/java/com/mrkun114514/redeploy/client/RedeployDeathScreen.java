@@ -382,7 +382,9 @@ public class RedeployDeathScreen extends Screen {
         done = true;
         playSound(CONFIRM_SOUND, 1.0f);
         Minecraft mc = Minecraft.getInstance();
-        mc.disconnect(new TitleScreen());
+        // 1.20.1 has no disconnect(Screen) overload; the vanilla ESC->Disconnect flow is clearLevel() + setScreen(TitleScreen).
+        mc.clearLevel();
+        mc.setScreen(new TitleScreen());
     }
 
     private void playSound(ResourceLocation id, float pitch) {

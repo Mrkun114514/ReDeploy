@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
@@ -381,8 +382,9 @@ public class RedeployDeathScreen extends Screen {
         done = true;
         playSound(CONFIRM_SOUND, 1.0f);
         Minecraft mc = Minecraft.getInstance();
-        // 1.20.1 has no disconnect(Screen) overload; the no-arg form returns to the title screen.
-        mc.disconnect();
+        // 1.20.1 has no disconnect(Screen) overload; the vanilla ESC->Disconnect flow is clearLevel() + setScreen(TitleScreen).
+        mc.clearLevel();
+        mc.setScreen(new TitleScreen());
     }
 
     private void playSound(ResourceLocation id, float pitch) {
