@@ -6,10 +6,11 @@
   "screen.redeploy.button": "REDEPLOY",
   "screen.redeploy.button.spectate": "DETACH",
   "screen.redeploy.button.quit": "EXTRACT",
-  "screen.redeploy.hint": "Hold [REDEPLOY] to respawn",
+  "screen.redeploy.button.menu": "MAIN MENU",
+  "screen.redeploy.hint": "Hold [REDEPLOY] to respawn · [MAIN MENU] to leave",
   "screen.redeploy.hint.hardcore": "Hold a button to choose",
   "screen.redeploy.hint.wait": "Locating respawn point...",
   "screen.redeploy.hint.wait.hardcore": "Preparing...",
-  "screen.redeploy.hint.holding": "Redeploying...",
+  "screen.redeploy.hint.holding": "Confirming...",
   "screen.redeploy.hint.holding.hardcore": "Confirming..."
 }

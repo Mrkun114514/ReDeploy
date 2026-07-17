@@ -104,18 +104,12 @@ public class RedeployDeathScreen extends Screen {
         // Hardcore buttons are the SAME size as the normal REDEPLOY button.
         this.btnW = Math.min(420, this.width - 80);
         this.btnX = (this.width - this.btnW) / 2;
-        if (hardcore) {
-            // two stacked buttons, each identical in size to REDEPLOY
-            this.btnY = subY + 70;
-            this.btn2X = this.btnX;
-            this.btn2Y = this.btnY + this.btnH + 16;
-            this.btn2W = this.btnW;
-        } else {
-            this.btnY = subY + 80;
-            this.btn2W = 0;
-            this.btn2X = 0;
-            this.btn2Y = 0;
-        }
+        // Both normal and Hardcore now show TWO stacked buttons
+        // (respawn / spectate on top, quit-to-title on the bottom).
+        this.btnY = subY + 70;
+        this.btn2X = this.btnX;
+        this.btn2Y = this.btnY + this.btnH + 16;
+        this.btn2W = this.btnW;
         this.openedAt = System.currentTimeMillis();
     }
 
@@ -158,7 +152,7 @@ public class RedeployDeathScreen extends Screen {
 
     /** Fire the action for the chosen button. */
     private void complete(int btn) {
-        if (hardcore && btn == BTN_QUIT) {
+        if (btn == BTN_QUIT) {
             quitToTitle();
         } else {
             doRespawn();   // normal respawn, or hardcore spectate (server forces spectator)
@@ -214,6 +208,7 @@ public class RedeployDeathScreen extends Screen {
             drawButton(gui, BTN_QUIT, btn2X, btn2Y, btn2W, btn2H, t, "screen.redeploy.button.quit");
         } else {
             drawButton(gui, BTN_REDEPLOY, btnX, btnY, btnW, btnH, t, "screen.redeploy.button");
+            drawButton(gui, BTN_QUIT, btn2X, btn2Y, btn2W, btn2H, t, "screen.redeploy.button.menu");
         }
 
         // --- Author watermark ---
@@ -353,6 +348,7 @@ public class RedeployDeathScreen extends Screen {
             return false;
         } else {
             if (insideBtn(BTN_REDEPLOY, mx, my)) { holdBtn = BTN_REDEPLOY; holdTicks = 0; return true; }
+            if (insideBtn(BTN_QUIT, mx, my))      { holdBtn = BTN_QUIT;      holdTicks = 0; return true; }
             return false;
         }
     }

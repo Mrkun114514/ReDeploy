@@ -6,10 +6,11 @@
   "screen.redeploy.button": "重新部署",
   "screen.redeploy.button.spectate": "脱离机体",
   "screen.redeploy.button.quit": "退出战区",
-  "screen.redeploy.hint": "长按【重新部署】以重生",
+  "screen.redeploy.button.menu": "返回主菜单",
+  "screen.redeploy.hint": "长按【重新部署】重生 · 【返回主菜单】离开",
   "screen.redeploy.hint.hardcore": "长按对应按钮以选择",
   "screen.redeploy.hint.wait": "正在定位重生点…",
   "screen.redeploy.hint.wait.hardcore": "准备中…",
-  "screen.redeploy.hint.holding": "正在重新部署…",
+  "screen.redeploy.hint.holding": "确认中…",
   "screen.redeploy.hint.holding.hardcore": "确认中…"
 }
