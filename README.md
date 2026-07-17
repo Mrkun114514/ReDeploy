@@ -19,10 +19,10 @@
 |---|---|---|---|---|---|
 | `neoforge-1.21.8/` | 1.21.6 – 1.21.11 | NeoForge | Matrix3x2fStack | 21 | ✅ CI 已构建 |
 | `fabric-1.21.8/` | 1.21.6 – 1.21.11 | Fabric | Matrix3x2fStack | 21 | ✅ CI 已构建 |
-| `neoforge-1.21.1/` | 1.21 – 1.21.1 | NeoForge | PoseStack | 21 | 🧪 CI 验证中 |
-| `fabric-1.21.1/` | 1.21 – 1.21.1 | Fabric | PoseStack | 21 | 🧪 CI 验证中 |
-| `fabric-1.20.1/` | 1.20.1 | Fabric | PoseStack | 17 | 🧪 CI 验证中 |
-| `neoforge-1.20.1/` | 1.20.1 | NeoForge (NeoGradle) | PoseStack | 17 | 🧪 CI 验证中 |
+| `neoforge-1.21.1/` | 1.21 – 1.21.1 | NeoForge | PoseStack | 21 | ✅ CI 已构建 |
+| `fabric-1.21.1/` | 1.21 – 1.21.1 | Fabric | PoseStack | 21 | ✅ CI 已构建 |
+| `fabric-1.20.1/` | 1.20.1 | Fabric | PoseStack | 17 | ✅ CI 已构建 |
+| `neoforge-1.20.1/` | 1.20.1 | NeoForge (NeoGradle) | PoseStack | 17 | ✅ CI 已构建 |
 
 > 说明：1.21.8 里程碑与 1.21.11 共用同一套渲染 API，理论上直接兼容 1.21.11；
 > 若后续 1.21.11 出现破坏性改动，会再单独出 `*-1.21.11/` 目录。
