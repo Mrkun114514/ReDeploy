@@ -379,9 +379,9 @@ public class RedeployDeathScreen extends Screen {
         done = true;
         playSound(CONFIRM_SOUND, 1.0f);
         Minecraft mc = Minecraft.getInstance();
-        // clearLevel() mirrors vanilla DeathScreen hardcore behaviour: saves the
+        // 1.21.6+ replaced clearLevel() with disconnectWithSavingScreen(): saves the
         // integrated server (singleplayer) and transitions to the title screen.
-        mc.clearLevel();
+        mc.disconnectWithSavingScreen();
     }
 
     private void playSound(ResourceLocation id, float pitch) {
