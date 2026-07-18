@@ -4,7 +4,6 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
@@ -106,9 +105,10 @@ public class RedeployDeathScreen extends Screen {
         this.btnX = (this.width - this.btnW) / 2;
         // Both normal and Hardcore now show TWO stacked buttons
         // (respawn / spectate on top, quit-to-title on the bottom).
-        this.btnY = subY + 70;
+        // Generous spacing to keep both buttons clearly clickable.
+        this.btnY = subY + 96;
         this.btn2X = this.btnX;
-        this.btn2Y = this.btnY + this.btnH + 16;
+        this.btn2Y = this.btnY + this.btnH + 24;
         this.btn2W = this.btnW;
         this.openedAt = System.currentTimeMillis();
     }
@@ -379,7 +379,9 @@ public class RedeployDeathScreen extends Screen {
         done = true;
         playSound(CONFIRM_SOUND, 1.0f);
         Minecraft mc = Minecraft.getInstance();
-        mc.disconnect(new TitleScreen(), false);
+        // clearLevel() mirrors vanilla DeathScreen hardcore behaviour: saves the
+        // integrated server (singleplayer) and transitions to the title screen.
+        mc.clearLevel();
     }
 
     private void playSound(ResourceLocation id, float pitch) {
