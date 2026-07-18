@@ -6,7 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.DeathScreen;
 
 /**
- * Fabric client entry point for ReDeploy (Minecraft 1.21.6 - 1.21.11).
+ * Fabric client entry point for ReDeploy (Minecraft 1.20.1).
  *
  * <p>Fabric has no equivalent of NeoForge's {@code ScreenEvent.Opening}, so instead
  * of a Mixin we watch the client tick: whenever the vanilla {@link DeathScreen}
