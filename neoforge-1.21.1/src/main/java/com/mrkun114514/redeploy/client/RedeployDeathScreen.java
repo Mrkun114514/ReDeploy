@@ -109,13 +109,19 @@ public class RedeployDeathScreen extends Screen {
         this.btn2X = this.btnX;
         this.btn2Y = this.btnY + this.btnH + 24;
         this.btn2W = this.btnW;
+        this.btn2H = this.btnH;   // 修复：底部"返回主菜单/退出战区"按钮须与上方按钮等高，否则高度为 0 不可见/不可点
         this.openedAt = System.currentTimeMillis();
     }
 
-    /** Real-time feel: the world keeps rendering behind the dim overlay. */
+    /**
+     * 必须返回 true（与原版 DeathScreen 一致），使整合服务器在本界面期间处于
+     * 暂停状态。否则点"返回主菜单"时会去保存一个仍在运行的服务器，导致
+     * "正在保存…"界面卡死、无法退出。暂停后世界仍会以冻结画面渲染在遮罩之后，
+     * COD 风格观感保留，只是不再有动态——这正是原版死亡界面的行为。
+     */
     @Override
     public boolean isPauseScreen() {
-        return false;
+        return true;
     }
 
     @Override
